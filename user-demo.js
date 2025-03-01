@@ -2,7 +2,11 @@ const express = require('express');
 const app = express();
 const conn = require('./db_demo'); // DB 연결 객체
 const bcrypt = require('bcrypt'); // 비밀번호 암호화
+const jwt = require('jsonwebtoken'); // JWT 추가
 const saltRounds = 10; // 암호화 강도 설정
+require('dotenv').config(); // .env 파일 로드
+
+const SECRET_KEY = process.env.SECRET_KEY || "mySecretKey"; // 환경변수에서 가져오거나 기본값 설정
 
 app.use(express.json()); // JSON 데이터 사용
 
@@ -46,7 +50,7 @@ app.post('/join', async (req, res) => {
     }
 });
 
-// 로그인
+// 로그인 (JWT 적용)
 app.post('/login', (req, res) => {
     const { email, password } = req.body;
 
@@ -72,7 +76,16 @@ app.post('/login', (req, res) => {
             return res.status(400).json({ message: "비밀번호가 틀렸습니다." });
         }
 
-        res.status(200).json({ message: `${user.name}님, 로그인 성공!`, userId: user.id });
+        // JWT 토큰 생성 (유효기간 1시간)
+        const token = jwt.sign({ userId: user.id, name: user.name }, SECRET_KEY, { expiresIn: '1h' });
+
+        res.cookie("tocken", token)
+        
+        res.status(200).json({ 
+            message: `${user.name}님, 로그인 성공!`, 
+            userId: user.id,
+            token // JWT 반환
+        });
     });
 });
 
